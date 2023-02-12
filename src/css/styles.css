@@ -18,3 +18,39 @@ body {
   max-width: 320px;
   margin-bottom: 16px;
 }
+ul, li {
+  padding-left: 0;
+}
+
+
+.country__title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.country__title {
+  font-size: 26px;
+}
+
+.country__stats {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.stats__item {
+  font-size: 18px;
+}
+
+.country__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  }
+
+.item__name {
+  font-size: 18px;
+}
+
