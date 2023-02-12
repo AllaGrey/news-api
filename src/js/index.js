@@ -21,9 +21,9 @@ function onFillInput(e) {
     fetchCountries(country)
       .then(response => {
         if (response.status === 404) {
-          throw new Error('Oops, there is no country with that name');
+          throw new Error('Oops, there is no country with that name.');
         } else if (response.length > 10) {
-          Notiflix.Notify.info(
+          throw new Error(
             'Too many matches found. Please enter a more specific name.'
           );
         } else if (response.length > 1) {
@@ -85,7 +85,14 @@ function updateCountryInfoCard(markup) {
 }
 
 function onError(err) {
-  Notiflix.Notify.failure(`${err}`);
+  const message = String(err);
+  if (message.includes('Too many matches found')) {
+    Notiflix.Notify.info(
+      `Too many matches found. Please enter a more specific name.`
+    );
+  } else {
+    Notiflix.Notify.failure(`Oops, there is no country with that name.`);
+  }
 }
 
 function onClearPreSearch() {
