@@ -1,100 +1,79 @@
 import '../css/styles.css';
 import debounce from 'lodash.debounce';
-import { fetchCountries } from './fetchCountries';
-import Notiflix from 'notiflix';
+import NewsApiService from './api.js';
+import LoadMoreBtn from './components/loadMore';
 
-const DEBOUNCE_DELAY = 300;
 const refs = {
-  searchInput: document.getElementById('search-box'),
-  countryList: document.querySelector('.country-list'),
-  countryInfo: document.querySelector('.country-info'),
+  form: document.querySelector('.form'),
+  newsWrapper: document.querySelector('.newsWrapper'),
 };
-refs.searchInput.addEventListener(
-  'input',
-  debounce(onFillInput, DEBOUNCE_DELAY)
-);
 
-function onFillInput(e) {
-  onClearPreSearch();
-  const country = e.target.value.trim();
-  if (country !== '') {
-    fetchCountries(country)
-      .then(response => {
-        if (response.status === 404) {
-          throw new Error('Oops, there is no country with that name.');
-        } else if (response.length > 10) {
-          throw new Error(
-            'Too many matches found. Please enter a more specific name.'
-          );
-        } else if (response.length > 1) {
-          return response.reduce(
-            (markup, country) => createMarkupList(country) + markup,
-            ''
-          );
-        } else {
-          const responseValues = {
-            nameOfficial: response[0].name.official,
-            capital: response[0].capital[0],
-            flag: response[0].flags.svg,
-            population: response[0].population,
-            languages: Object.values(response[0].languages).join(', '),
-          };
-          return createCountryInfoCard(responseValues);
-        }
-      })
-      .then(markup => updateCountryInfoCard(markup))
-      .catch(err => onError(err));
-  }
+const newsApiService = new NewsApiService();
+const loadMoreBtn = new LoadMoreBtn({
+  selector: '.loadMoreBtn',
+  isHiden: true,
+});
+console.log(loadMoreBtn);
+
+console.log(refs.form);
+console.log(refs.newsWrapper);
+
+refs.form.addEventListener('submit', onSearch);
+loadMoreBtn.button.addEventListener('click', fetchArticles);
+
+function onSearch(e) {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const value = form.elements[0].value.trim();
+  newsApiService.searchQuery = value;
+  clearMarkup();
+  newsApiService.resetPage();
+  loadMoreBtn.show();
+  loadMoreBtn.disable();
+
+  fetchArticles().finally(() => refs.form.reset());
 }
 
-function createCountryInfoCard({
-  nameOfficial,
-  capital,
-  population,
-  flag,
-  languages,
-}) {
-  const markup = `
-  <div class="country__title-box">
-      <img class="country__img" src=${flag} width="25" height="25" />  
-  <h2 class="country__title">${nameOfficial}</h2>
-  </div>
-      <ul class="country__stats">
-        <li class="stats__item"><b>Capital:</b> ${capital}</li>
-        <li class="stats__item"><b>Population:</b> ${population}</li>
-        <li class="stats__item"><b>Languages:</b> ${languages}</li>
-    </ul>
-    `;
-  return markup;
+function fetchArticles() {
+  return newsApiService
+    .getNews()
+    .then(articles => {
+      if (articles.length === 0) throw new Error('No data');
+      console.log(articles);
+
+      return articles.reduce(
+        (markup, article) => createMarkup(article) + markup,
+        ''
+      );
+    })
+    .then(markup => {
+      updateNewsList(markup);
+      loadMoreBtn.enable();
+    })
+    .catch(onError);
 }
 
-function createMarkupList({ flags, name }) {
-  const markup = `
-  <ul class="country-list">
-    <li class="country__item">
-      <img class="item__img" src=${flags.svg} width="20" height="20" />  
-      <h2 class="item__name">${name.official}</h2>
-    </li>
-  </ul>
-  `;
-  return markup;
+function clearMarkup() {
+  refs.newsWrapper.innerHTML = '';
 }
 
-function updateCountryInfoCard(markup) {
-  refs.countryInfo.innerHTML = markup;
+function updateNewsList(markup) {
+  refs.newsWrapper.insertAdjacentHTML('beforeend', markup);
 }
 
 function onError(err) {
-  const message = String(err);
-  if (message.includes('Too many matches found')) {
-    Notiflix.Notify.info(
-      `Too many matches found. Please enter a more specific name.`
-    );
-  } else {
-    Notiflix.Notify.failure(`Oops, there is no country with that name.`);
-  }
+  console.log(err);
 }
 
-function onClearPreSearch() {
-  refs.countryInfo.innerHTML = '';
+function createMarkup({ author, title, description, url, urlToImage }) {
+  return `
+    <div class="article-card">
+      <h2 class="article-title">${title}</h2>
+      <img class="article-img" src="${urlToImage}" alt="" />
+      <h3 class="article-author">${author || 'Anonimous'}</h3>
+      <p class="article-description">${description}</p>
+      <a class="article-url" href="${url}" target="_blank">Read more</a>
+    </div>
+    `;
 }
