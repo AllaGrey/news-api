@@ -1,5 +1,7 @@
 import '../css/styles.css';
+
 import debounce from 'lodash.debounce';
+import axios from 'axios';
 import NewsApiService from './api.js';
 import LoadMoreBtn from './components/loadMore';
 
@@ -35,23 +37,38 @@ function onSearch(e) {
   fetchArticles().finally(() => refs.form.reset());
 }
 
-function fetchArticles() {
-  return newsApiService
-    .getNews()
-    .then(articles => {
-      if (articles.length === 0) throw new Error('No data');
-      console.log(articles);
+async function fetchArticles() {
+  try {
+    const articles = await newsApiService.getNews();
+    if (articles.length === 0) throw new Error('No data');
 
-      return articles.reduce(
-        (markup, article) => createMarkup(article) + markup,
-        ''
-      );
-    })
-    .then(markup => {
-      updateNewsList(markup);
-      loadMoreBtn.enable();
-    })
-    .catch(onError);
+    const markup = articles.reduce(
+      (markup, article) => createMarkup(article) + markup,
+      ''
+    );
+
+    updateNewsList(markup);
+    loadMoreBtn.enable();
+  } catch (err) {
+    onError;
+  }
+
+  // return newsApiService
+  //   .getNews()
+  //   .then(articles => {
+  //     if (articles.length === 0) throw new Error('No data');
+  //     console.log(articles);
+
+  //     return articles.reduce(
+  //       (markup, article) => createMarkup(article) + markup,
+  //       ''
+  //     );
+  //   })
+  //   .then(markup => {
+  //     updateNewsList(markup);
+  //     loadMoreBtn.enable();
+  //   })
+  //   .catch(onError);
 }
 
 function clearMarkup() {
